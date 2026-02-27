@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha Roofing Metal Calculator</title>
+    
+    <link rel="icon" href="app-icon.png">
+    <link rel="apple-touch-icon" href="app-icon.png">
+
+    <style>
+        :root {
+            --page-bg: #f4f4f4; 
+            --card-white: #ffffff;
+            --primary-accent: #d35400; /* Alpha Roofing Dark Orange */
+            --hover-bg: #fdf3ed;
+            --item-bg: #fafafa;
+            --text-dark: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        h1 { color: var(--primary-accent); text-align: center; margin-bottom: 20px; font-size: 1.8em;}
+        h2 { color: var(--primary-accent); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; font-size: 1.3em;}
+        
+        /* Tab Navigation */
+        .tab-container { display: flex; margin-bottom: 20px; background: #ddd; border-radius: 8px; overflow: hidden; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: transparent; font-size: 1.1em; font-weight: bold; color: #555; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active { background: var(--primary-accent); color: white; }
+        
+        .card {
+            background: var(--card-white); padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; display: none;
+        }
+        .card.active { display: block; }
+
+        label.field-label { display: block; font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #555; font-size: 0.9em; text-transform: uppercase;}
+        
+        input[type="number"], select {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 18px; background-color: #fff;
+        }
+        
+        .input-group { display: flex; align-items: center; }
+        .input-group span { background: #eee; padding: 12px 15px; border: 1px solid #ccc; border-right: none; border-radius: 6px 0 0 6px; font-weight: bold; color: #555; }
+        .input-group input { border-radius: 0 6px 6px 0; }
+        
+        /* The Output Box */
+        .results-box {
+            margin-top: 30px; padding: 20px; background: #2c3e50; color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .results-box h3 { margin: 0 0 15px 0; border-bottom: 1px solid #4a6278; padding-bottom: 10px; color: #ecf0f1;}
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1em; }
+        .result-total { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--primary-accent); font-size: 1.5em; font-weight: bold; color: #fff;}
+        
+        button.action-btn {
+            display: block; width: 100%; padding: 18px; background-color: var(--primary-accent); color: white; border: none; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; margin-top: 20px; transition: background-color 0.2s;
+        }
+        button.action-btn:hover { background-color: #a04000; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Alpha Metal Fabrication</h1>
+
+    <div class="tab-container">
+        <button class="tab-btn active" id="calcTabBtn" onclick="switchTab('calc')">Calculator</button>
+        <button class="tab-btn" id="settingsTabBtn" onclick="switchTab('settings')">Settings</button>
+    </div>
+
+    <div class="card active" id="calcCard">
+        <h2>Job Details</h2>
+        
+        <label class="field-label">Profile / Shape</label>
+        <select id="profileSelect" onchange="autoFillStretchOut()">
+            <option value="custom">Custom Profile</option>
+            <option value="4.5">Drip Edge (4.5" Stretch)</option>
+            <option value="6">Drip Edge (6" Stretch)</option>
+            <option value="12">Coping Cap (12" Stretch)</option>
+            <option value="18">Coping Cap (18" Stretch)</option>
+            <option value="8">Counterflashing (8" Stretch)</option>
+        </select>
+
+        <label class="field-label">Stretch Out (Inches)</label>
+        <div class="input-group">
+            <input type="number" id="stretchOut" placeholder="e.g. 6" step="0.25">
+            <span style="border-radius: 0 6px 6px 0; border-left: none; border-right: 1px solid #ccc;">in</span>
+        </div>
+
+        <label class="field-label">Material Type</label>
+        <select id="materialType">
+            <option value="24ga">24 Gauge Steel</option>
+            <option value="22ga">22 Gauge Steel</option>
+            <option value="tpo">TPO Coated Metal</option>
+        </select>
+
+        <label class="field-label">Total Linear Feet Needed</label>
+        <div class="input-group">
+            <input type="number" id="linearFeet" placeholder="e.g. 100" step="1">
+            <span style="border-radius: 0 6px 6px 0; border-left: none; border-right: 1px solid #ccc;">LF</span>
+        </div>
+
+        <button class="action-btn" onclick="calculatePrice()">Calculate Price</button>
+
+        <div class="results-box" id="resultsBox" style="display: none;">
+            <h3>Estimate Breakdown</h3>
+            <div class="result-row">
+                <span>Shear Yield:</span>
+                <span id="outYield">0 pieces per sheet</span>
+            </div>
+            <div class="result-row">
+                <span>Material Cost:</span>
+                <span id="outMatCost">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span>Labor Cost:</span>
+                <span id="outLabCost">$0.00</span>
+            </div>
+            <div class="result-row" style="color: #bdc3c7; font-size: 0.9em;">
+                <span>+ Waste & Markup Applied</span>
+                <span></span>
+            </div>
+            <div class="result-total">
+                <span>Price per LF:</span>
+                <span id="outPricePerLf" style="color: var(--primary-accent);">$0.00</span>
+            </div>
+            <div class="result-total" style="border-top: none; padding-top: 5px; font-size: 1.2em;">
+                <span>Total Sell Price:</span>
+                <span id="outTotalSell">$0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="settingsCard">
+        <h2>Pricing & Rates Dashboard</h2>
+        <p style="font-size: 0.9em; color: #666; margin-bottom: 20px;">Update your shop costs here. They will auto-save to your device.</p>
+
+        <label class="field-label">24 Ga Sheet Cost (4x10 / 40sqft)</label>
+        <div class="input-group">
+            <span>$</span>
+            <input type="number" id="cost24ga" value="84.80" step="0.01">
+        </div>
+
+        <label class="field-label">22 Ga Sheet Cost (4x10 / 40sqft)</label>
+        <div class="input-group">
+            <span>$</span>
+            <input type="number" id="cost22ga" value="100.00" step="0.01">
+        </div>
+
+        <label class="field-label">TPO Coated Sheet Cost (4x10 / 40sqft)</label>
+        <div class="input-group">
+            <span>$</span>
+            <input type="number" id="costTpo" value="340.71" step="0.01">
+        </div>
+
+        <label class="field-label">Shop Labor Rate (Per Hour)</label>
+        <div class="input-group">
+            <span>$</span>
+            <input type="number" id="laborRate" value="85.00" step="1">
+        </div>
+
+        <label class="field-label">Estimated Fab Time (Minutes per LF)</label>
+        <div class="input-group">
+            <input type="number" id="minsPerLf" value="1.5" step="0.1">
+            <span style="border-radius: 0 6px 6px 0; border-left: none; border-right: 1px solid #ccc;">mins</span>
+        </div>
+
+        <label class="field-label">Material Waste Factor</label>
+        <div class="input-group">
+            <input type="number" id="wastePct" value="10" step="1">
+            <span style="border-radius: 0 6px 6px 0; border-left: none; border-right: 1px solid #ccc;">%</span>
+        </div>
+
+        <label class="field-label">Profit Markup</label>
+        <div class="input-group">
+            <input type="number" id="markupPct" value="30" step="1">
+            <span style="border-radius: 0 6px 6px 0; border-left: none; border-right: 1px solid #ccc;">%</span>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTO SAVE SETTINGS ---
+        const settingsInputs = ['cost24ga', 'cost22ga', 'costTpo', 'laborRate', 'minsPerLf', 'wastePct', 'markupPct'];
+
+        function saveSettings() {
+            const data = {};
+            settingsInputs.forEach(id => {
+                data[id] = document.getElementById(id).value;
+            });
+            localStorage.setItem('alphaMetalSettings', JSON.stringify(data));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('alphaMetalSettings');
+            if (saved) {
+                const data = JSON.parse(saved);
+                settingsInputs.forEach(id => {
+                    if(data[id] !== undefined) document.getElementById(id).value = data[id];
+                });
+            }
+        }
+
+        window.onload = loadSettings;
+        document.getElementById('settingsCard').addEventListener('input', saveSettings);
+
+        // --- TAB SWITCHER ---
+        function switchTab(tab) {
+            document.getElementById('calcCard').classList.remove('active');
+            document.getElementById('settingsCard').classList.remove('active');
+            document.getElementById('calcTabBtn').classList.remove('active');
+            document.getElementById('settingsTabBtn').classList.remove('active');
+
+            if(tab === 'calc') {
+                document.getElementById('calcCard').classList.add('active');
+                document.getElementById('calcTabBtn').classList.add('active');
+            } else {
+                document.getElementById('settingsCard').classList.add('active');
+                document.getElementById('settingsTabBtn').classList.add('active');
+            }
+        }
+
+        // --- PRESET PROFILES ---
+        function autoFillStretchOut() {
+            const select = document.getElementById('profileSelect');
+            const stretchInput = document.getElementById('stretchOut');
+            if (select.value !== 'custom') {
+                stretchInput.value = select.value;
+            } else {
+                stretchInput.value = '';
+            }
+        }
+
+        // --- CORE MATH ENGINE ---
+        function calculatePrice() {
+            // Get user inputs
+            const stretchOut = parseFloat(document.getElementById('stretchOut').value);
+            const lf = parseFloat(document.getElementById('linearFeet').value);
+            const materialType = document.getElementById('materialType').value;
+            
+            if(!stretchOut || !lf) {
+                alert("Please enter a Stretch Out and Total Linear Feet.");
+                return;
+            }
+
+            // Get Settings
+            let sheetCost = 0;
+            if(materialType === '24ga') sheetCost = parseFloat(document.getElementById('cost24ga').value);
+            if(materialType === '22ga') sheetCost = parseFloat(document.getElementById('cost22ga').value);
+            if(materialType === 'tpo') sheetCost = parseFloat(document.getElementById('costTpo').value);
+
+            const laborRate = parseFloat(document.getElementById('laborRate').value);
+            const minsPerLf = parseFloat(document.getElementById('minsPerLf').value);
+            const wastePct = parseFloat(document.getElementById('wastePct').value) / 100;
+            const markupPct = parseFloat(document.getElementById('markupPct').value) / 100;
+
+            // 1. Calculate Cost per Sq Ft (Assuming 40 sq ft sheet)
+            const costPerSqFt = sheetCost / 40;
+
+            // 2. The Alpha Yield Math (Divisible by 48" Sheet Width)
+            let piecesPerSheetWidth = Math.floor(48 / stretchOut);
+            if (piecesPerSheetWidth < 1) piecesPerSheetWidth = 1; // Prevent breaking if stretch > 48
+            
+            // How much of the 48" width does one piece effectively "consume" (including the drop/waste)
+            const effectiveWidthInches = 48 / piecesPerSheetWidth;
+            const effectiveSqFtPerLF = effectiveWidthInches / 12;
+
+            // 3. Material Cost
+            const rawMaterialCost = effectiveSqFtPerLF * costPerSqFt * lf;
+            const totalMaterialCost = rawMaterialCost * (1 + wastePct);
+
+            // 4. Labor Cost
+            const totalHours = (minsPerLf * lf) / 60;
+            const totalLaborCost = totalHours * laborRate;
+
+            // 5. Apply Markup
+            const baseCost = totalMaterialCost + totalLaborCost;
+            const totalSellPrice = baseCost * (1 + markupPct);
+            const pricePerLf = totalSellPrice / lf;
+
+            // 6. Output to Screen
+            document.getElementById('outYield').innerText = `${piecesPerSheetWidth} pieces per 48" sheet`;
+            document.getElementById('outMatCost').innerText = '$' + totalMaterialCost.toFixed(2);
+            document.getElementById('outLabCost').innerText = '$' + totalLaborCost.toFixed(2);
+            document.getElementById('outPricePerLf').innerText = '$' + pricePerLf.toFixed(2);
+            document.getElementById('outTotalSell').innerText = '$' + totalSellPrice.toFixed(2);
+
+            document.getElementById('resultsBox').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
