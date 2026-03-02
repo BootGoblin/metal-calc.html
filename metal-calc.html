@@ -1,44 +1,155 @@
-/**
- * Calculates the total cost per linear foot for a sheet metal profile.
- * @param {number|string} stretchOutInches - The manually adjustable stretch out in inches.
- * @param {number|string} laborMinutesPerLF - The estimated labor time in minutes per linear foot.
- * @param {number|string} materialCostPerSqFt - Your cost of the flat sheet metal per square foot.
- * @param {number|string} hourlyLaborRate - Your shop/field hourly labor rate.
- * @param {number|string} wastePercentage - The percentage of material waste/scrap (e.g., 10 for 10%).
- * @returns {object} The broken down costs per linear foot as numbers.
- */
-function calculateCostPerLF(stretchOutInches, laborMinutesPerLF, materialCostPerSqFt, hourlyLaborRate, wastePercentage = 0) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha Sheet Metal Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+        }
+        .calculator-container {
+            max-width: 500px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin: auto;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        .results {
+            margin-top: 25px;
+            padding: 15px;
+            background: #eef2f5;
+            border-radius: 4px;
+            border-left: 5px solid #3498db;
+        }
+        .results p {
+            margin: 10px 0;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+        }
+        .total-line {
+            font-weight: bold;
+            font-size: 1.3em !important;
+            border-top: 2px solid #ccc;
+            padding-top: 10px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator-container">
+    <h2>Sheet Metal Profile Estimator</h2>
     
-    // Convert inputs to floats to prevent HTML string errors, defaulting to 0 if empty
-    const stretch = parseFloat(stretchOutInches) || 0;
-    const laborMins = parseFloat(laborMinutesPerLF) || 0;
-    const materialCost = parseFloat(materialCostPerSqFt) || 0;
-    const laborRate = parseFloat(hourlyLaborRate) || 0;
-    const waste = parseFloat(wastePercentage) || 0;
+    <div class="input-group">
+        <label for="stretchOut">Stretch Out (Inches)</label>
+        <input type="number" id="stretchOut" value="20" step="0.5">
+    </div>
 
-    // 1. Calculate Material Cost per LF (with waste factor)
-    const materialSqFtPerLF = stretch / 12;
-    const baseMaterialCostPerLF = materialSqFtPerLF * materialCost;
-    const wasteMultiplier = 1 + (waste / 100);
-    const totalMaterialCostPerLF = baseMaterialCostPerLF * wasteMultiplier;
+    <div class="input-group">
+        <label for="laborMins">Labor Minutes (per LF)</label>
+        <input type="number" id="laborMins" value="5.0" step="0.1">
+    </div>
 
-    // 2. Calculate Labor Cost per LF
-    const laborRatePerMinute = laborRate / 60;
-    const laborCostPerLF = laborMins * laborRatePerMinute;
+    <div class="input-group">
+        <label for="materialCost">Material Cost ($ per Sq Ft)</label>
+        <input type="number" id="materialCost" value="1.50" step="0.01">
+    </div>
 
-    // 3. Total Cost per LF
-    const totalCostPerLF = totalMaterialCostPerLF + laborCostPerLF;
+    <div class="input-group">
+        <label for="laborRate">Shop Hourly Labor Rate ($)</label>
+        <input type="number" id="laborRate" value="60.00" step="1.00">
+    </div>
 
-    // Returns numbers so you can safely multiply them by the total job length later
-    return {
-        stretchOutUsed: stretch,
-        materialCostLF: parseFloat(totalMaterialCostPerLF.toFixed(2)),
-        laborCostLF: parseFloat(laborCostPerLF.toFixed(2)),
-        totalCostLF: parseFloat(totalCostPerLF.toFixed(2))
-    };
-}
+    <div class="input-group">
+        <label for="wasteFactor">Waste/Scrap Factor (%)</label>
+        <input type="number" id="wasteFactor" value="10" step="1">
+    </div>
 
-// EXAMPLE USAGE:
-// Coping Cap: 20" stretch, 5 mins labor, $1.50/sqft, $60/hr rate, 10% waste
-const copingEstimate = calculateCostPerLF(20, 5.0, 1.50, 60.00, 10);
-console.log(copingEstimate);
+    <div class="results">
+        <p><span>Material Cost / LF:</span> <span id="outMaterial">$0.00</span></p>
+        <p><span>Labor Cost / LF:</span> <span id="outLabor">$0.00</span></p>
+        <p class="total-line"><span>Total Cost / LF:</span> <span id="outTotal">$0.00</span></p>
+    </div>
+</div>
+
+<script>
+    // The calculation logic
+    function calculateCostPerLF(stretchOutInches, laborMinutesPerLF, materialCostPerSqFt, hourlyLaborRate, wastePercentage = 0) {
+        const stretch = parseFloat(stretchOutInches) || 0;
+        const laborMins = parseFloat(laborMinutesPerLF) || 0;
+        const materialCost = parseFloat(materialCostPerSqFt) || 0;
+        const laborRate = parseFloat(hourlyLaborRate) || 0;
+        const waste = parseFloat(wastePercentage) || 0;
+
+        const materialSqFtPerLF = stretch / 12;
+        const baseMaterialCostPerLF = materialSqFtPerLF * materialCost;
+        const wasteMultiplier = 1 + (waste / 100);
+        const totalMaterialCostPerLF = baseMaterialCostPerLF * wasteMultiplier;
+
+        const laborRatePerMinute = laborRate / 60;
+        const laborCostPerLF = laborMins * laborRatePerMinute;
+
+        const totalCostPerLF = totalMaterialCostPerLF + laborCostPerLF;
+
+        return {
+            materialCostLF: totalMaterialCostPerLF.toFixed(2),
+            laborCostLF: laborCostPerLF.toFixed(2),
+            totalCostLF: totalCostPerLF.toFixed(2)
+        };
+    }
+
+    // Function to read inputs and update the screen
+    function updateUI() {
+        const stretchOut = document.getElementById('stretchOut').value;
+        const laborMins = document.getElementById('laborMins').value;
+        const materialCost = document.getElementById('materialCost').value;
+        const laborRate = document.getElementById('laborRate').value;
+        const wasteFactor = document.getElementById('wasteFactor').value;
+
+        const results = calculateCostPerLF(stretchOut, laborMins, materialCost, laborRate, wasteFactor);
+
+        document.getElementById('outMaterial').innerText = '$' + results.materialCostLF;
+        document.getElementById('outLabor').innerText = '$' + results.laborCostLF;
+        document.getElementById('outTotal').innerText = '$' + results.totalCostLF;
+    }
+
+    // Attach event listeners to all inputs so it updates automatically as you type
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('input', updateUI);
+    });
+
+    // Run once on page load to calculate the default values
+    updateUI();
+</script>
+
+</body>
+</html>
