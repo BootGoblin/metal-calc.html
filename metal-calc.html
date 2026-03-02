@@ -1,36 +1,44 @@
 /**
  * Calculates the total cost per linear foot for a sheet metal profile.
- * * @param {number} stretchOutInches - The manually adjustable stretch out in inches.
- * @param {number} laborMinutesPerLF - The estimated labor time in minutes per linear foot.
- * @param {number} materialCostPerSqFt - Your cost of the flat sheet metal per square foot.
- * @param {number} hourlyLaborRate - Your shop/field hourly labor rate.
- * @returns {object} The broken down costs per linear foot.
+ * @param {number|string} stretchOutInches - The manually adjustable stretch out in inches.
+ * @param {number|string} laborMinutesPerLF - The estimated labor time in minutes per linear foot.
+ * @param {number|string} materialCostPerSqFt - Your cost of the flat sheet metal per square foot.
+ * @param {number|string} hourlyLaborRate - Your shop/field hourly labor rate.
+ * @param {number|string} wastePercentage - The percentage of material waste/scrap (e.g., 10 for 10%).
+ * @returns {object} The broken down costs per linear foot as numbers.
  */
-function calculateCostPerLF(stretchOutInches, laborMinutesPerLF, materialCostPerSqFt, hourlyLaborRate) {
+function calculateCostPerLF(stretchOutInches, laborMinutesPerLF, materialCostPerSqFt, hourlyLaborRate, wastePercentage = 0) {
     
-    // 1. Calculate Material Cost per LF
-    // Stretch out (inches) / 12 = sq ft of material used per linear foot of the profile
-    const materialSqFtPerLF = stretchOutInches / 12;
-    const materialCostPerLF = materialSqFtPerLF * materialCostPerSqFt;
+    // Convert inputs to floats to prevent HTML string errors, defaulting to 0 if empty
+    const stretch = parseFloat(stretchOutInches) || 0;
+    const laborMins = parseFloat(laborMinutesPerLF) || 0;
+    const materialCost = parseFloat(materialCostPerSqFt) || 0;
+    const laborRate = parseFloat(hourlyLaborRate) || 0;
+    const waste = parseFloat(wastePercentage) || 0;
+
+    // 1. Calculate Material Cost per LF (with waste factor)
+    const materialSqFtPerLF = stretch / 12;
+    const baseMaterialCostPerLF = materialSqFtPerLF * materialCost;
+    const wasteMultiplier = 1 + (waste / 100);
+    const totalMaterialCostPerLF = baseMaterialCostPerLF * wasteMultiplier;
 
     // 2. Calculate Labor Cost per LF
-    const laborRatePerMinute = hourlyLaborRate / 60;
-    const laborCostPerLF = laborMinutesPerLF * laborRatePerMinute;
+    const laborRatePerMinute = laborRate / 60;
+    const laborCostPerLF = laborMins * laborRatePerMinute;
 
     // 3. Total Cost per LF
-    const totalCostPerLF = materialCostPerLF + laborCostPerLF;
+    const totalCostPerLF = totalMaterialCostPerLF + laborCostPerLF;
 
+    // Returns numbers so you can safely multiply them by the total job length later
     return {
-        stretchOutUsed: stretchOutInches,
-        materialCostLF: materialCostPerLF.toFixed(2),
-        laborCostLF: laborCostPerLF.toFixed(2),
-        totalCostLF: totalCostPerLF.toFixed(2)
+        stretchOutUsed: stretch,
+        materialCostLF: parseFloat(totalMaterialCostPerLF.toFixed(2)),
+        laborCostLF: parseFloat(laborCostPerLF.toFixed(2)),
+        totalCostLF: parseFloat(totalCostPerLF.toFixed(2))
     };
 }
 
 // EXAMPLE USAGE:
-// Calculating a Coping Cap where you manually adjusted the stretch out to 20 inches.
-// Assuming metal costs $1.50/sq ft and shop labor is $60/hour.
-const copingEstimate = calculateCostPerLF(20, 5.0, 1.50, 60.00);
-console.log(copingEstimate); 
-// Output: { stretchOutUsed: 20, materialCostLF: "2.50", laborCostLF: "5.00", totalCostLF: "7.50" }
+// Coping Cap: 20" stretch, 5 mins labor, $1.50/sqft, $60/hr rate, 10% waste
+const copingEstimate = calculateCostPerLF(20, 5.0, 1.50, 60.00, 10);
+console.log(copingEstimate);
